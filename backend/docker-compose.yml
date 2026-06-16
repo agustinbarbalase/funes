@@ -18,6 +18,21 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - funes_backend_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   migrate:
     image: flyway/flyway:10
     command: migrate
@@ -46,6 +61,7 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://redis:6379
     volumes:
       - .:/app
     networks:
@@ -53,9 +69,12 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
 
 volumes:
   pgdata:
+  redisdata:
 
 networks:
   funes_backend_network:
