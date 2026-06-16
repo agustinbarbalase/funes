@@ -3,7 +3,7 @@ services:
     name: funes-api
     runtime: docker
     rootDir: backend
-    plan: starter
+    plan: free
     dockerfilePath: ./backend/Dockerfile
     envVars:
       - key: DATABASE_URL
