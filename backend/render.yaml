@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: funes-api
+    runtime: docker
+    rootDir: backend
+    plan: starter
+    dockerfilePath: ./backend/Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.13.0
+    healthCheckPath: /health
+    buildFilter:
+      paths:
+        - backend/**
+    autoDeploy: false
