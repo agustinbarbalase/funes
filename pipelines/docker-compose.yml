@@ -1,0 +1,100 @@
+services:
+  rabbitmq:
+    build: ./rabbitmq
+    ports:
+    - 5672:5672
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - nc -z localhost 5672 || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    volumes:
+    - rabbitmq_data:/var/lib/rabbitmq
+  fetch:
+    build: ./workers/fetch
+    volumes:
+    - ./common:/app/common:ro
+    - ./cache:/app/cache
+    env_file: .env
+    environment:
+      QUEUE_IN: tasks
+      QUEUE_OUT: raw_pages
+    depends_on: &id001
+      rabbitmq:
+        condition: service_healthy
+    deploy:
+      replicas: 2
+    restart: on-failure
+    networks:
+    - default
+    mem_limit: 256m
+  transform:
+    build: ./workers/transform
+    volumes:
+    - ./common:/app/common:ro
+    - ./cache:/app/cache
+    env_file: .env
+    environment:
+      QUEUE_IN: raw_pages
+      QUEUE_OUT: ephemerides
+    depends_on: *id001
+    deploy:
+      replicas: 2
+    restart: on-failure
+    networks:
+    - default
+    mem_limit: 256m
+  validate:
+    build: ./workers/validate
+    volumes:
+    - ./common:/app/common:ro
+    - ./cache:/app/cache
+    env_file: .env
+    environment:
+      QUEUE_IN: ephemerides
+      QUEUE_OUT: valid_ephemerides
+    depends_on: *id001
+    deploy:
+      replicas: 2
+    restart: on-failure
+    networks:
+    - default
+    mem_limit: 256m
+  load:
+    build: ./workers/load
+    volumes:
+    - ./common:/app/common:ro
+    - ./cache:/app/cache
+    env_file: .env
+    environment:
+      QUEUE_IN: valid_ephemerides
+    depends_on: *id001
+    deploy:
+      replicas: 3
+    restart: on-failure
+    networks:
+    - default
+    - backend
+    mem_limit: 768m
+  producer:
+    build: ./producer
+    volumes:
+    - ./common:/app/common:ro
+    env_file: .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    profiles:
+    - producer
+networks:
+  default:
+    name: pipelines_internal
+    driver: bridge
+  backend:
+    name: funes_backend_network
+    external: true
+volumes:
+  rabbitmq_data: null

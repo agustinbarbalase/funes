@@ -1,0 +1,29 @@
+infrastructure:
+  rabbitmq:
+    image: rabbitmq:3.12-alpine
+    ports:
+      - "5672:5672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+workers:
+  fetch:
+    replicas: 2
+    queue_in: tasks
+    queue_out: raw_pages
+    mem_limit: 256m
+  transform:
+    replicas: 2
+    queue_in: raw_pages
+    queue_out: ephemerides
+    mem_limit: 256m
+  validate:
+    replicas: 2
+    queue_in: ephemerides
+    queue_out: valid_ephemerides
+    mem_limit: 256m
+  load:
+    replicas: 3
+    queue_in: valid_ephemerides
+    queue_out: null
+    mem_limit: 768m
