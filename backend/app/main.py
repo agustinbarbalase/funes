@@ -28,3 +28,7 @@ app.include_router(ingest_router)
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+@app.head("/health")
+async def health_head():
+    return {"status": "ok"}
